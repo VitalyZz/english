@@ -1,0 +1,8 @@
+Header always edit Set-Cookie ^(.*)$ "$1; HttpOnly; Secure; SameSite=lax"
+DirectoryIndex index.php
+
+RewriteEngine on
+RewriteBase /
+
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule (.*) /public/$1 [L]

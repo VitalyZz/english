@@ -1,0 +1,16 @@
+{
+    "name": "vitaly/api",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Vitaly",
+            "email": "garshin.1999@inbox.ru"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Src\\": "src"
+        }
+    }
+}
