@@ -1,37 +1,51 @@
 <template>
   <div class="main">
-    <div class="wrapper-left-block">
-      <div class="translates">{{ getTranslates }}</div>
-      <div class="writeWord">
-        <input type="text" class="inputWriteWord">
+    <div class="top" v-if="words.length > currentAnswers">
+      <div class="wrapper-left-block">
+        {{ currentWord.word }}
+        <!--        <div class="word">{{ currentWord.word }}</div>-->
       </div>
-      <div class="sentences">
-        <div class="sentence" v-for="sentence in tempSentences">
-          {{ sentence }}
-        </div>
+      <input type="text" v-model="inputWord" class="inputText">
+      <div class="translate-block">
+<!--        <button class="translation" v-for="word in randomWords" @click="$emit('answer', word)">{{ word.translations }}</button>-->
+        <button class="iknow" @click="$emit('iknow')">Ответ</button>
+        <button class="donotknow" @click="$emit('idonotknow')">Я не знаю</button>
       </div>
     </div>
-    <div class="translate-block">
-      <button class="donotknow" @click="$emit('idonotknow')">Я не знаю</button>
-      <button class="forward" @click="$emit('answer')">Дальше</button>
+    <div class="messageEnd" v-else>
+      <h1>Конец</h1>
+      <router-link to="/simulators">Вернуться к тренажерам</router-link>
+      <!--      <router-link :to="'/simulator/' + $route.params.id">Начать заново</router-link>-->
     </div>
+    <!--    <div class="bottom">-->
+    <!--      <div class="sentences">-->
+    <!--        <div class="sentence" v-for="sentence in tempSentences">-->
+    <!--          {{ sentence }}-->
+    <!--        </div>-->
+    <!--      </div>-->
+    <!--    </div>-->
   </div>
 </template>
 
 <script>
 export default {
-  props: ['tempCurrentWord', 'tempSentences', 'tempCurrentBlock', 'right', 'wrong'],
+  props: ['words', 'currentWord', 'currentAnswers'],
   data() {
     return {
-      translates: ''
+      inputWord: ''
     }
   },
-  mounted() {
-
-  },
   computed: {
-    getTranslates() {
-      return this.tempCurrentBlock.translate.join(', ')
+    randomWords() {
+      let temp = this.words.slice(0);
+      temp = temp.filter(el => el.id_word_information !== this.currentWord.id_word_information)
+      temp = temp.slice(0, 3);
+      temp.push(this.currentWord)
+      temp.sort(function () { return 0.5 - Math.random() });
+
+      console.log('temp', temp);
+
+      return temp;
     }
   }
 }
@@ -40,40 +54,67 @@ export default {
 <style scoped lang="scss">
 .main {
   display: flex;
+  flex-direction: column;
   background: #2B2B2B;
   box-shadow: 8px 8px 10px rgba(0, 0, 0, 0.7);
   border-radius: 5px;
   padding: 20px 30px;
 
-  .wrapper-left-block {
+  .top {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
 
-    .translates {
-      font-size: 18px;
+    .inputText {
+      padding: 5px 10px;
+      border-radius: 5px;
+      border: none;
+      font-size: 17px;
+      margin-top: 10px;
+      outline: none;
+    }
+
+    .wrapper-left-block {
+      font-weight: bold;
+      font-size: 24px;
+      line-height: 28px;
       color: #fff;
       text-transform: uppercase;
-    }
 
-    .writeWord {
-
-      .inputWriteWord {
-        border: none;
-        background-color: #fff;
-        font-size: 18px;
-        font-weight: bold;
-        padding: 10px 15px;
-        outline: none;
-        border-radius: 5px;
-        margin: 10px 0;
-        color: #2B2B2B;
-        text-transform: uppercase;
+      .word {
+        //font-weight: bold;
+        //font-size: 24px;
+        //line-height: 28px;
+        //color: #fff;
+        //text-transform: uppercase;
       }
     }
+  }
+
+  .messageEnd {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    h1 {
+      color: #0DFF92;
+    }
+
+    a {
+      margin-top: 10px;
+      color: #ffffff;
+
+      &:hover {
+        color: #0DFF92;
+      }
+    }
+  }
+
+  .bottom {
+    max-width: 700px;
+    margin-top: 20px;
 
     .sentences {
-
       .sentence {
         color: #FFFFFF;
         font-size: 20px;
@@ -90,11 +131,11 @@ export default {
     flex-direction: column;
     margin-left: 50px;
 
-    .translate {
+    .translation {
       padding: 10px 70px;
       background: #36404A;
       border-radius: 100px;
-      font-size: 22px;
+      font-size: 18px;
       font-weight: bold;
       color: #fff;
       border: none;
@@ -109,7 +150,8 @@ export default {
       }
     }
 
-    .forward, .donotknow {
+    .iknow {
+      background: #2eff76;
       border-radius: 100px;
       padding: 10px 70px;
       font-size: 22px;
@@ -117,19 +159,24 @@ export default {
       margin-top: 30px;
       border: none;
       cursor: pointer;
+
+      &:hover {
+        background: #2eff76;
+      }
     }
 
     .donotknow {
       background: #FF4D4D;
+      border-radius: 100px;
+      padding: 10px 70px;
+      font-size: 22px;
+      font-weight: bold;
+      margin-top: 30px;
+      border: none;
+      cursor: pointer;
+
       &:hover {
         background: #ff6969;
-      }
-    }
-
-    .forward {
-      background: #00A307;
-      &:hover {
-        background: #00A307;
       }
     }
   }

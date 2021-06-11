@@ -12,18 +12,21 @@
 
   <div class="texts_block" v-else>
     <TextBlock
-        v-for="text in texts"
-        :key="text.id_text"
-        :title="text.title"
-        :text="text.text"
-        :id_user="text.id_user"
-        :id_text="text.id_text"/>
+      v-for="text in texts"
+      :key="text.id_text"
+      :title="text.title"
+      :text="text.text"
+      :id_user="text.id_user"
+      :id_text="text.id_text"
+      @deleteText="deleteText"
+    />
   </div>
 
   <teleport to="body">
     <ModalAddText
         v-if="showModalAddText"
         @closeModalAddText="showModalAddText = false"
+        @addText="addText"
     />
   </teleport>
 </template>
@@ -41,6 +44,22 @@ export default {
       texts: [],
       showModalAddText: false,
       showLoader: true
+    }
+  },
+  methods: {
+    async deleteText(id_user, id_text) {
+      this.texts = this.texts.filter(el => el.id_text !==  id_text)
+      await axios.post('/text/delete', { id_user, id_text })
+    },
+    async addText(title, text) {
+      if (title.length >= 3 && text.length >= 5) {
+        const id_user = this.$store.getters['auth/getCurrentUser'].id;
+
+        const formData = { title, text, id_user };
+
+        this.showModalAddText = false;
+        this.texts.unshift((await axios.post('/text/create', formData)).data);
+      }
     }
   },
   async mounted() {
@@ -69,7 +88,7 @@ export default {
 
     // const key = "dict.1.1.20210601T151729Z.cb8f7f225a387d74.67724ff1c9c838097dba9aace6250395f85202d2";
     // const words = (await axios.get('/words/getAll')).data
-
+    //
     // for (const el of words) {
     //   const url = `https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=${key}&lang=en-ru&text=${el.word}`;
     //   const data = await fetch(url);

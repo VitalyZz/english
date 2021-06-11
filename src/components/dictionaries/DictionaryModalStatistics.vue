@@ -1,10 +1,11 @@
 <template>
   <div class="main">
     <div>Количество слов: <LoaderMini v-if="isLoading"/> <span v-else>{{ wordsAll }}</span></div>
-    <div>Количество уникальных слов: <LoaderMini v-if="isLoading"/> <span v-else>{{ wordsUnique }}</span></div>
-    <div>Количество известных слов: <LoaderMini v-if="isLoading"/> <span v-else>{{ wordsKnown }}</span></div>
-    <div>Количество изучаемых слов: <LoaderMini v-if="isLoading"/> <span v-else>{{ wordsStudy }}</span></div>
-    <div>Количество неизвестных слов: <LoaderMini v-if="isLoading"/> <span v-else>{{ wordsUnknown }}</span></div>
+    <div v-if="!isMeaning">Количество известных слов: <LoaderMini v-if="isLoading"/> <span v-else>{{ wordsKnown }}</span></div>
+    <div v-if="!isMeaning">Количество изучаемых слов: <LoaderMini v-if="isLoading"/> <span v-else>{{ wordsStudy }}</span></div>
+    <div>Количество правильных ответов: <LoaderMini v-if="isLoading"/> <span v-else>{{ correct }}</span></div>
+    <div>Количество неправильных ответов: <LoaderMini v-if="isLoading"/> <span v-else>{{ wrong }}</span></div>
+    <div>Количество повторений: <LoaderMini v-if="isLoading"/> <span v-else>{{ repetitions }}</span></div>
     <div @click="$emit('closeModalStatistics')" class="close"></div>
   </div>
 
@@ -16,52 +17,41 @@ import LoaderMini from "@/components/app/LoaderMini";
 import axios from "axios";
 
 export default {
-  props: ['id_text'],
+  props: ['id_dictionary'],
   emits: ['closeModalStatistics'],
   data() {
     return {
       wordsAll: 0,
-      wordsUnique: 0,
       wordsKnown: 0,
       wordsStudy: 0,
-      wordsUnknown: 0,
+      correct: 0,
+      wrong: 0,
+      repetitions: 0,
       isLoading: true,
+      isMeaning: false,
     }
   },
   async mounted() {
     const id_user = this.$store.getters['auth/getCurrentUser'].id;
-    const id_text = this.id_text
+    const id_dictionary = this.id_dictionary;
 
-    let text = (await axios.post('/text/getById', {id_user, id_text})).data.text
+    const data = { id_user, id_dictionary };
 
-    const resultKnown = (await axios.post('/words/getByMeaning', { id_user, meaning: 0 })).data;
-    const resultStudy = (await axios.post('/words/getByMeaning', { id_user, meaning: 1 })).data;
+    if (['known', 'study'].indexOf(id_dictionary) !== -1) {
+      console.log('HWEHWEHOWUWOEEOH');
+      this.isMeaning = true
+    }
 
-    const arrOfWordsKnown = resultKnown.map(el => el.word);
-    const arrOfWordsStudy = resultStudy.map(el => el.word);
+    const statistics = (await axios.post('/dictionary/statistics', data)).data;
 
-    let countOfWords = 0;
-    let countKnownWords = 0;
-    let countStudyWords = 0;
-    let countUnknownWords = 0;
-    let countUniqueWords = 0;
+    console.log('statistics', statistics)
 
-    const words = text.match(/(?:[a-z])+/igm);
-
-    words.forEach(word => {
-      if (arrOfWordsKnown.indexOf(word.toLowerCase()) !== -1) countKnownWords++; // проверям является ли слово известным
-      else if (arrOfWordsStudy.indexOf(word.toLowerCase()) !== -1) countStudyWords++; // проверям является ли слово изучаемым
-      else countUnknownWords++; // иначе слово неизвестное
-    })
-
-    countOfWords = countKnownWords + countStudyWords + countUnknownWords;
-    countUniqueWords = [...new Set(words)].length;
-
-    this.wordsAll = countOfWords;
-    this.wordsUnique = countUniqueWords;
-    this.wordsKnown = countKnownWords;
-    this.wordsStudy = countStudyWords;
-    this.wordsUnknown = countUnknownWords;
+    this.wordsAll = statistics.words ?? 0;
+    this.wordsKnown = statistics.known ?? 0;
+    this.wordsStudy = statistics.study ?? 0;
+    this.correct = statistics.correct ?? 0;
+    this.wrong = statistics.wrong ?? 0;
+    this.repetitions = statistics.repetitions ?? 0;
 
     this.isLoading = false
   },

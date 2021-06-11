@@ -18,6 +18,7 @@
 
 <script>
 import ColourPicker from '@caohenghu/vue-colorpicker'
+import { mapMutations } from 'vuex'
 
 export default {
   props: {
@@ -39,11 +40,9 @@ export default {
       currentColor: this.color
     }
   },
-  mounted() {
-    // this.currentColor = '#000'
-    // console.log('Color', this.currentColor)
-  },
+  emits: ['changeColor'],
   methods: {
+    ...mapMutations('colors', ['setColor']),
     close() {
       if (this.showPicker) {
         this.showPicker = false
@@ -60,6 +59,9 @@ export default {
     changeColor(color) {
       const { r, g, b, a } = color.rgba
       this.currentColor = `rgba(${r}, ${g}, ${b}, ${a})`
+      this.setColor({name: this.name, color: this.currentColor})
+      this.$store.state['colors'].change = this.currentColor
+      // this.$emit('changeColor', this.name);
     },
     openSucker(isOpen) {
       console.log('openSucker isOpen', isOpen);

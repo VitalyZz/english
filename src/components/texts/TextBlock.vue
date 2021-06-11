@@ -12,8 +12,8 @@
       <div class="dark"></div>
     </div>
     <div class="buttons">
-      <button class="delete" :data-user-id="id_user">Удалить</button>
-      <router-link class="forward" :to="`/text/${id_text}`" :data-user-id="id_user">Вперед</router-link>
+      <button class="delete" @click="$emit('deleteText', id_user, id_text)">Удалить</button>
+      <router-link class="forward" :to="`/text/${id_text}`">Вперед</router-link>
       <button
           class="statistics"
           @click="showModalStatistics = true">
@@ -25,6 +25,7 @@
   <teleport to="body">
     <ModalStatistics
       v-if="showModalStatistics"
+      :id_text="id_text"
       @closeModalStatistics="showModalStatistics = false"
     />
   </teleport>
@@ -34,6 +35,7 @@
 import ModalStatistics from "@/components/texts/ModalStatistics";
 
 export default {
+  emits: ['deleteText'],
   props: ['title', 'text', 'id_user', 'id_text'],
   data() {
     return {

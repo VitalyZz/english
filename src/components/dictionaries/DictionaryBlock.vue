@@ -11,24 +11,49 @@
       <!--        <div class="word">adipisicing</div>-->
     </div>
     <div class="statistics" :style="{backgroundColor: color }">
-      <div class="number">31 / 70</div>
-      <div class="percents">44.29%</div>
+<!--      <div class="number">31 / 70</div>-->
+<!--      <div class="percents">44.29%</div>-->
     </div>
     <div class="buttons">
-      <button class="btn-statistics">Статистика</button>
-      <button class="btn-delete" v-if="isDelete">Удалить</button>
+      <button class="btn-statistics" @click="showModalStatistics = true">Статистика</button>
+      <button class="btn-delete" v-if="isDelete" @click="deleteDictionary">Удалить</button>
     </div>
   </div>
+
+  <teleport to="body">
+    <DictionaryModalStatistics
+      v-if="showModalStatistics"
+      @closeModalStatistics="showModalStatistics = false"
+      :id_dictionary="id"
+    />
+  </teleport>
 </template>
 
 <script>
+import axios from "axios";
+import DictionaryModalStatistics from '@/components/dictionaries/DictionaryModalStatistics'
+
 export default {
-  // props: ['isDelete', 'color', 'title']
+  data() {
+    return {
+      showModalStatistics: false
+    }
+  },
   props: {
     isDelete: { type: Boolean, default: true, required: false },
-    color: { type: String, default: '#ff4b4b', required: false },
+    color: { type: String, default: '#21a4ff', required: false },
     title: { type: String, required: true },
-    id: { type: Number, required: true },
+    id: { type: [String, Number], required: true },
+  },
+  methods: {
+    async deleteDictionary() {
+      const id_user = this.$store.getters['auth/getCurrentUser'].id;
+      const data = { id_user, id_dictionary: this.id}
+      await axios.post('/dictionary/delete', data);
+    }
+  },
+  components: {
+    DictionaryModalStatistics
   }
 }
 </script>

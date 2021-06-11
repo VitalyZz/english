@@ -1,5 +1,4 @@
 import axios from '../axios/axios'
-import someAx from '../axios/axios'
 
 export default {
     namespaced: 'auth',

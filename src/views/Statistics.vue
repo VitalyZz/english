@@ -1,18 +1,39 @@
 <template>
-  <h1>Statistics</h1>
+<!--  <h1>Statistics</h1>-->
   <div class="main">
-    <div class="firstChart"></div>
-    <div class="secondChart"></div>
+<!--    <div class="firstChart"></div>-->
+<!--    <div class="secondChart"></div>-->
+    <div class="statistic_text">Количество слов: {{ words }}</div>
+    <div class="statistic_text">Количество правильных ответов: {{ correct }}</div>
+    <div class="statistic_text">Количество неправильных ответов: {{ wrong }}</div>
+    <div class="thirdChart"></div>
   </div>
 </template>
 
 <!--<GoogleCharts/>-->
 
 <script>
+import axios from "axios";
+
 export default {
-  mounted() {
-    this.start1();
-    this.start2();
+  data() {
+    return {
+      words: 0,
+      correct: 0,
+      wrong: 0
+    }
+  },
+  async mounted() {
+    const id_user = this.$store.getters['auth/getCurrentUser'].id;
+    const data = (await axios.post('/words/getAllCountOfWords', {id_user})).data
+
+    this.words = data.words;
+    this.correct = data.correct;
+    this.wrong = data.wrong;
+
+    // this.start1();
+    // this.start2();
+    this.start3();
   },
   methods: {
     start1() {
@@ -22,6 +43,10 @@ export default {
     start2() {
       google.charts.load('current', {'packages':['corechart']});
       google.charts.setOnLoadCallback(this.drawVisualization2);
+    },
+    start3() {
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(this.drawVisualization3);
     },
     drawVisualization1() {
       const data = new google.visualization.DataTable();
@@ -156,6 +181,74 @@ export default {
 
       var chart = new google.visualization.ComboChart(document.querySelector('.secondChart'));
       chart.draw(data, options);
+    },
+    async drawVisualization3() {
+
+      const id_user = this.$store.getters['auth/getCurrentUser'].id;
+      const resultKnown = (await axios.post('/words/getByMeaning', { id_user, meaning: 0 })).data;
+      const resultStudy = (await axios.post('/words/getByMeaning', { id_user, meaning: 1 })).data;
+
+      const data = new google.visualization.DataTable();
+
+      data.addColumn('string', 'name');
+      data.addColumn('number', 'count');
+      data.addColumn({ role: 'annotation', type: 'string' });
+
+      const arr = [
+        {name: 'Процент известных слов', count: resultKnown.length},
+        {name: 'Процент изучаемых слов', count: resultStudy.length},
+      ];
+
+      arr.forEach(function(item) {
+        data.addRow([item['name'], item['count'], item['count'].toString()]);
+      });
+
+      var options = {
+        title : `Соотношение двух типов слов.`,
+        vAxis: {
+          title: 'Количество (шт)',
+          format: 'decimal',
+          textStyle: {color: '#fff'},
+          titleTextStyle: {color: '#fff'},
+          gridlines: {
+            color: '#6e6e6e'
+          },
+          baselineColor: 'transparent'
+        },
+        titleTextStyle: {
+          color: '#fff'
+        },
+        hAxis: {title: 'Коды',
+          textStyle: {color: '#fff'},
+          titleTextStyle: {color: '#fff'},
+          gridlines: {
+            color: '#6e6e6e'
+          }
+        },
+        pieSliceTextStyle: {
+          color: 'black',
+          fontSize: 18,
+        },
+        slices: {
+          0: { color: '#40ff3a' },
+          1: { color: '#3b91ff' },
+        },
+        backgroundColor: '#36404A',
+        // colors: ['#F1C232', '#AF4EF4'],
+        isStacked: true,
+        legend: {position: 'top', textStyle: {color: '#fff'}},
+        tooltip: {trigger: 'none'},
+        annotations: {
+          textStyle: {
+            bold: true,
+            fontSize: 16
+          },
+          alwaysOutside: true
+        }
+      };
+
+      var chart = new google.visualization.PieChart(document.querySelector('.thirdChart'));
+      chart.draw(data, options);
     }
   },
   components: {
@@ -172,12 +265,25 @@ export default {
   }
 
   .main {
+    margin-top: 60px;
+
+    .statistic_text {
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+    }
+
     .firstChart {
       width: 100%;
       height: 500px;
     }
 
     .secondChart {
+      width: 100%;
+      height: 500px;
+    }
+
+    .thirdChart {
       width: 100%;
       height: 500px;
     }

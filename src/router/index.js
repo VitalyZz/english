@@ -136,7 +136,11 @@ router.beforeEach((to ,from, next) => {
 
         // console.log('to:', to, ' | ', 'currentUser:', currentUser, ' | ', 'requiredAuth:', requiredAuth);
 
-        if (!requiredAuth) {
+        if (isAuth && (to.path === '/signup' || to.path === '/login')) {
+            // console.log('Уже авторизован')
+            next('/texts');
+        }
+        else if (!requiredAuth) {
             // console.log('Авторизация не требуется');
             next();
         } else if (!isAuth && requiredAuth) {

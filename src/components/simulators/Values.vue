@@ -10,14 +10,14 @@
     </div>
     <div class="completed">
       <div class="title">Выполнено</div>
-      <div class="value">8 / 10</div>
+      <div class="value">{{ right + wrong }} / {{ length }}</div>
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  props: ['right', 'wrong']
+  props: ['right', 'wrong', 'length']
 }
 </script>
 

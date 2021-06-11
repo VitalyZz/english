@@ -11,7 +11,9 @@ use Src\Controllers\DictionaryController;
 use Src\Controllers\TextController;
 use Src\Controllers\WordsController;
 
-header('Access-Control-Allow-Origin: http://localhost:8080');
+require_once dirname(__DIR__) . '/config.php';
+
+header('Access-Control-Allow-Origin: ' . ORIGIN);
 header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS, DELETE');
 header('Access-Control-Allow-Headers: Accept, Content-Type, x-requested-with, SameSite, Set-Cookie');
@@ -32,17 +34,27 @@ $router->add('/text/create', TextController::class, 'create');
 $router->add('/text/delete', TextController::class, 'delete');
 $router->add('/text/update', TextController::class, 'update');
 
-$router->add('/dictionary/get', DictionaryController::class, 'getAll');
+$router->add('/dictionary/getAll', DictionaryController::class, 'getAll');
 $router->add('/dictionary/delete', DictionaryController::class, 'delete');
+$router->add('/dictionary/create', DictionaryController::class, 'create');
+$router->add('/dictionary/statistics', DictionaryController::class, 'statistics');
 
 $router->add('/words/getByDictionaryId', WordsController::class, 'getByDictionaryId');
 $router->add('/words/getByMeaning', WordsController::class, 'getByMeaning');
+$router->add('/words/getByMeaningWithTranslations', WordsController::class, 'getByMeaningWithTranslations');
 $router->add('/words/insertTranslation', WordsController::class, 'insertTranslation');
 $router->add('/words/getAll', WordsController::class, 'getAll');
+$router->add('/words/getStudyWords', WordsController::class, 'getStudyWords');
 $router->add('/words/delete', WordsController::class, 'delete');
+$router->add('/words/deleteWithoutDictionaryById', WordsController::class, 'deleteWithoutDictionaryById');
+$router->add('/words/getAllCountOfWords', WordsController::class, 'getAllCountOfWords');
+$router->add('/word/changeMeaning', WordsController::class, 'changeMeaning');
+$router->add('/word/deleteWithoutDictionary', WordsController::class, 'deleteWithoutDictionary');
+$router->add('/word/update', WordsController::class, 'update');
+$router->add('/word/updateByChangeDictionary', WordsController::class, 'updateByChangeDictionary');
 
 $container->set(Connection::class, function() {
-    return new Connection("mysql:host=localhost;dbname=english", 'root', 'root');
+    return new Connection("mysql:host=" . HOST . ";dbname=" . DBNAME, USERNAME, PASSWORD);
 });
 
 $container->set(SessionStorage::class, function () {

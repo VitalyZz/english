@@ -2,6 +2,7 @@
 
 namespace Src\Controllers;
 
+use Dotenv\Dotenv;
 use Src\App\Database\Connection;
 use Src\App\Storage\SessionStorage;
 

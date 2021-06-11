@@ -12,6 +12,8 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   emits: ['closeModalDictionary'],
   data() {
@@ -20,13 +22,20 @@ export default {
     }
   },
   methods: {
-    submitHandler() {
+    async submitHandler() {
       if (this.title.length > 5) {
+        const id_user = this.$store.getters['auth/getCurrentUser'].id;
+
         const formData = {
-          title: this.title
+          title: this.title,
+          id_user
         }
 
         console.log('formData', formData)
+
+        this.$emit('closeModalDictionary')
+
+        await axios.post('/dictionary/create', formData)
       }
     }
   }

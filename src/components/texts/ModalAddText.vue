@@ -1,7 +1,7 @@
 <template>
   <div class="main">
     <div class="block">
-      <form @submit.prevent="submitHandler">
+      <form @submit.prevent="$emit('addText', title, text)">
         <h2>Заполните поля</h2>
         <div class="error"></div>
         <div class="form-control">
@@ -24,33 +24,12 @@
 </template>
 
 <script>
-import axios from "axios";
-import {mapGetters} from 'vuex'
-
 export default {
-  emits: ['closeModalAddText'],
+  emits: ['closeModalAddText', 'addText'],
   data() {
     return {
       title: '',
       text: ''
-    }
-  },
-  computed: {
-    ...mapGetters('auth', ['getCurrentUser'])
-  },
-  methods: {
-    async submitHandler() {
-      if (this.title.length > 3 && this.text.length > 5) {
-        const formData = {
-          title: this.title,
-          text: this.text,
-          id_user: this.getCurrentUser.id
-        }
-
-        this.$emit('closeModalAddText')
-        await axios.post('/text/create', formData, )
-        console.log(formData)
-      }
     }
   }
 }

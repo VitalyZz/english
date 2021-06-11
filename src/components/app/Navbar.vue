@@ -1,7 +1,7 @@
 <template>
   <header v-if="isShow">
     <div class="start">
-      <router-link to="/texts" class="brand-logo">Language</router-link>
+      <router-link to="/texts" class="brand-logo">English-lan</router-link>
     </div>
     <div class="center" v-if="getAuth">
       <ul class="navigation">

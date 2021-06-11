@@ -15,7 +15,7 @@ class TextController
         $this->connection = $connection;
     }
 
-    public function create()
+    public function create(): array
     {
         $data = json_decode(file_get_contents("php://input"), true);
 
@@ -30,6 +30,13 @@ class TextController
             ':title' => $title,
             ':text' => $text
         ]);
+
+        return [
+            'id_user' => $id_user,
+            'id_text' => $this->connection->lastInsertId(),
+            'title' => $title,
+            'text' => $text
+        ];
     }
 
     public function getAll(): array
@@ -87,7 +94,7 @@ class TextController
         ]);
     }
 
-    public function delete()
+    public function delete(): void
     {
         $data = json_decode(file_get_contents("php://input"), true);
 
