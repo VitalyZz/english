@@ -5,7 +5,7 @@
         <h2>Заполните поля</h2>
         <div class="error"></div>
         <div class="form-control">
-          <input type="text" name="title" id="inputId" placeholder=" " v-model="title">
+          <input type="text" name="title" id="inputId" placeholder=" " v-model="title" autocomplete="off">
           <label for="inputId" class="labelClass labelForInput">Заголовок</label>
         </div>
         <div class="form-control">

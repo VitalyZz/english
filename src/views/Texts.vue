@@ -18,6 +18,8 @@
       :text="text.text"
       :id_user="text.id_user"
       :id_text="text.id_text"
+      :publicAccess="text.public"
+      :deleteTextBool="text.delete"
       @deleteText="deleteText"
     />
   </div>
@@ -55,10 +57,12 @@ export default {
       if (title.length >= 3 && text.length >= 5) {
         const id_user = this.$store.getters['auth/getCurrentUser'].id;
 
-        const formData = { title, text, id_user };
+        const formData = { title, text, id_user, public: 0 };
 
         this.showModalAddText = false;
-        this.texts.unshift((await axios.post('/text/create', formData)).data);
+        this.texts.unshift({ ...(await axios.post('/text/create', formData)).data, delete: true });
+
+        console.log(this.texts);
       }
     }
   },
@@ -112,8 +116,15 @@ export default {
     // get yandex END
 
     const id_user = this.$store.getters['auth/getCurrentUser'].id;
-    const response = await axios.post('/texts/get', {id_user: id_user})
+    const response = await axios.post('/texts/getAll', { id_user })
     this.texts = response.data
+    this.texts.push(...(await axios.get('texts/getPublic')).data)
+    this.texts.map(el => {
+      if (el.id_user === id_user) {
+        el.delete = true;
+      }
+      else el.delete = !(el.public === '1' && el.id_user !== id_user);
+    })
 
     // Парсинг текста [START]
 

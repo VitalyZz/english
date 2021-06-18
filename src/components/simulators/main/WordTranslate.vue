@@ -5,22 +5,14 @@
         <div class="word">{{ currentWord.word }}</div>
       </div>
       <div class="translate-block">
-        <button class="translation" v-for="word in randomWords" @click="$emit('answer', word)">{{ word.translations }}</button>
+        <button class="translation" v-for="word in randomWords" @click="$emit('answer', word)">{{ word.translation }}</button>
         <button class="donotknow" @click="$emit('idonotknow')">Я не знаю</button>
       </div>
     </div>
     <div class="messageEnd" v-else>
       <h1>Конец</h1>
       <router-link to="/simulators">Вернуться к тренажерам</router-link>
-<!--      <router-link :to="'/simulator/' + $route.params.id">Начать заново</router-link>-->
     </div>
-<!--    <div class="bottom">-->
-<!--      <div class="sentences">-->
-<!--        <div class="sentence" v-for="sentence in tempSentences">-->
-<!--          {{ sentence }}-->
-<!--        </div>-->
-<!--      </div>-->
-<!--    </div>-->
   </div>
 </template>
 

@@ -15,6 +15,16 @@
             <a :href="href" @click="navigate">{{ link.title }}</a>
           </li>
         </router-link>
+
+        <router-link
+            v-if="getCurrentUser.role === 'ADMIN'"
+            to="/admin"
+            custom
+            v-slot="{ isActive, href, navigate }">
+          <li :class="isActive ? 'active' : ''">
+            <a :href="href" @click="navigate">Админ</a>
+          </li>
+        </router-link>
       </ul>
     </div>
 
@@ -50,17 +60,9 @@ export default {
   },
   mounted() {
     const checkAuth = this.getAuth;
-    // const checkAuth = (localStorage.isAuth !== undefined && localStorage.isAuth !== 'false') ?? true;
-
-    console.log('Navbar, checkAuth [Navbar]', checkAuth)
 
     if (checkAuth) this.isLogin = true
     this.isShow = true
-
-    // setTimeout(() => {
-    //   const checkAuth = this.$store.getters['auth/getAuth'];
-    //   console.log('Navbar, checkAuth: setTimeout', checkAuth)
-    // }, 100)
   },
   methods: {
     logout() {
@@ -80,7 +82,7 @@ export default {
     width: 100%;
     height: 70px;
     background-color: #0DFF92;
-    z-index: 2;
+    z-index: 10;
   }
 
   .center {

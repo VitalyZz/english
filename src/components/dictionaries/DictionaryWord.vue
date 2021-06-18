@@ -1,110 +1,149 @@
 <template>
-  <div class="index">{{ index + 1 }}</div>
-  <div class="word">{{ word.word }} - {{ word.translation }}</div>
-  <button class="delete" @click="deleteWord(word.id_word_information)">Удалить</button>
-  <div class="list">
-    <select v-model="selectedTask" @change="onChangeSelectedTask">
-      <option
-          v-for="dictionary in dictionaries"
-          :key="word.id_word_information"
-          :value="word.id_word_information + ',' + dictionary.id_dictionary"
-          :selected="word.id_dictionary === dictionary.id_dictionary"
-          :data-type="selectedTask"
-      >
-        {{ dictionary.title }}
-      </option>
-    </select>
-  </div>
+  <td class="selectElements">
+    <div class="wrapperCheckbox">
+      <input v-model="checked" @change="onChange" type="checkbox" class="custom-checkbox" :id="word.id_word_information" :value="word.id_word_information">
+      <label :for="word.id_word_information">{{ index + 1 }}</label>
+    </div>
+  </td>
+  <td class="word">{{ word.word }}</td>
+  <td class="translation">{{ word.translation }}</td>
+  <td class="correct">{{ word.correct ?? 0 }}</td>
+  <td class="wrong">{{ word.wrong ?? 0 }}</td>
+  <td class="dictionary">{{ word.title }}</td>
 </template>
 
 <script>
-import axios from "axios";
-
 export default {
-  props: ['word', 'index', 'dictionaries'],
+  emits: ['update:modelValue'],
+  props: ['word', 'index', 'modelValue'],
   data() {
     return {
-      // selectedTask: this.word.id_word_information + ',' + this.dictionaries.find(el => el.id_dictionary === this.word.id_dictionary).id,
-      selectedTask: this.word.id_word_information + ',' + this.word.id_dictionary,
+      check: false,
+    }
+  },
+  computed: {
+    checked: {
+      get() {
+        return this.modelValue
+      },
+      set(value) {
+        this.check = value
+      }
     }
   },
   methods: {
-    async onChangeSelectedTask() {
-      const id_user = this.$store.getters['auth/getCurrentUser'].id;
-      const id_word_information = this.selectedTask.split(',')[0];
-      const id_dictionary = this.selectedTask.split(',')[1];
-
-      const data = { id_user, id_word_information, id_dictionary }
-
-      await axios.post('/word/updateByChangeDictionary', data)
-      console.log('onChangeSelectedTask:', this.selectedTask, id_word_information, id_dictionary);
-    },
-    async deleteWord(id_word_information) {
-      const id_dictionary = this.$route.params.id;
-
-      if (['known', 'study'].indexOf(id_dictionary) !== -1) {
-        const id_user = this.$store.getters['auth/getCurrentUser'].id;
-        this.words = this.words.filter(el => el.id_word_information !== id_word_information)
-        await axios.post('/words/deleteWithoutDictionaryById', { id_user, id_word_information })
-      } else {
-        const id_user = this.$store.getters['auth/getCurrentUser'].id;
-        this.words = this.words.filter(el => el.id_word_information !== id_word_information)
-        await axios.post('/words/delete', { id_user, id_dictionary, id_word_information })
-      }
+    onChange(e) {
+      this.$emit('update:modelValue', this.check)
     }
   },
 }
 </script>
 
 <style scoped lang="scss">
-  .index {
-    font-size: 18px;
-    color: #fff;
+  td {
+    padding: 10px;
+    background-color: #465361;
+    border-bottom: 2px solid #36404A;
   }
 
-  .word {
-    margin-left: 10px;
-    font-size: 28px;
-    padding: 5px 10px;
-    background-color: #8296aa;
-    border-radius: 3px;
-    transition: .3s;
-    cursor: pointer;
+  .wrapperCheckbox {
+    display: flex;
+    justify-content: center;
+  }
 
-    &:hover {
-     box-shadow: 0 0 10px 1px #000;
+  td.selectElements {
+    label {
+      color: #fff;
     }
   }
 
-  .delete {
-    padding: 8px 15px;
+  td.word, td.translation, td.correct, td.wrong, td.dictionary {
     font-size: 16px;
-    outline: none;
-    background-color: #ff4747;
-    border: none;
-    border-radius: 5px;
     font-weight: bold;
-    margin-left: 10px;
     color: #fff;
-    cursor: pointer;
+  }
 
-    &:hover {
-     box-shadow: 0 0 10px 1px #ff4747;
-    }
+  td.word, td.correct, td.wrong, td.dictionary {
+    text-align: center;
   }
 
   .list {
-    margin-left: 10px;
-
+    display: flex;
+    justify-content: center;
     select {
       border-radius: 5px;
       background-color: #2bb1ff;
-      padding: 8px 15px;
-      font-size: 16px;
+      padding: 5px 10px;
+      font-size: 14px;
       color: #fff;
       font-weight: bold;
       border: none;
       outline: none;
     }
+  }
+
+  .custom-checkbox {
+    position: absolute;
+    z-index: -1;
+    opacity: 0;
+
+    &:checked + label:before {
+      border-color: #0DFF92;
+      background-color: #0DFF92;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23fff' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26 2.974 7.25 8 2.193z'/%3e%3c/svg%3e");
+    }
+
+    /* стили при наведении курсора на checkbox */
+    &:not(:disabled):not(:checked)+label:hover::before {
+      border-color: #87ffc5;
+    }
+    /* стили для активного состояния чекбокса (при нажатии на него) */
+    &:not(:disabled):active+label::before {
+      background-color: #87ffc5;
+      border-color: #87ffc5;
+    }
+    /* стили для чекбокса, находящегося в фокусе */
+    &:focus+label::before {
+      box-shadow: 0 0 0 0.2rem rgba(0, 255, 85, 0.25);
+    }
+    /* стили для чекбокса, находящегося в фокусе и не находящегося в состоянии checked */
+    &:focus:not(:checked)+label::before {
+      border-color: #87ffc5;
+    }
+    /* стили для чекбокса, находящегося в состоянии disabled */
+    &:disabled+label::before {
+      background-color: #e9ecef;
+    }
+
+    & + label {
+      display: inline-flex;
+      align-items: center;
+      user-select: none;
+
+      &:before {
+        content: '';
+        display: inline-block;
+        width: 1em;
+        height: 1em;
+        flex-shrink: 0;
+        flex-grow: 0;
+        border: 1px solid #adb5bd;
+        border-radius: 0.25em;
+        margin-right: 0.5em;
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: 50% 50%;
+      }
+    }
+  }
+
+  //.checkbox {
+  //  margin-right: 10px;
+  //  padding: 10px;
+  //}
+
+  .index {
+    font-size: 18px;
+    color: #fff;
   }
 </style>

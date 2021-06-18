@@ -6,7 +6,7 @@
           <img :src="img_document" alt="document">
           <span>Текст</span>
         </div>
-        <button class="change" @click="showModalEditor = true">Изменить</button>
+        <button v-if="accessToUpdate" class="change" @click="showModalEditor = true">Изменить</button>
         <button class="statistics" @click="showModalStatistics = true">Статистика</button>
       </div>
 
@@ -63,6 +63,7 @@
         v-if="showModalStatistics"
         @closeModalStatistics="showModalStatistics = false"
         :id_text="$route.params.id"
+        :publicAccess="publicAccess"
     />
   </teleport>
 
@@ -107,7 +108,9 @@ export default {
       isWordClick: false,
       x: 0,
       y: 0,
-      currentWord: {}
+      currentWord: {},
+      accessToUpdate: false,
+      publicAccess: '0',
     }
   },
   computed: {
@@ -145,7 +148,22 @@ export default {
   async mounted() {
     const id_user = this.$store.getters['auth/getCurrentUser'].id;
     const id_text = this.$route.params.id;
-    const responseText = (await axios.post('/text/getById', {id_user, id_text})).data
+
+    // Проверка на public для текста
+    const publicText = (await axios.post('/text/checkPublic', { id_text })).data.public;
+
+    console.log()
+
+    let responseText = '';
+
+    if (publicText !== '1') {
+      this.accessToUpdate = true
+      responseText = (await axios.post('/text/getById', {id_user, id_text})).data
+    } else {
+      this.publicAccess = '1';
+      responseText = (await axios.post('/text/getByIdWithoutUser', {id_user, id_text})).data
+    }
+
     this.text = responseText.text
 
     this.colorPickers.forEach(el => {
@@ -195,6 +213,8 @@ export default {
         }
       });
 
+      console.log('this.items', this.items)
+
       this.isWordClick = false;
 
       if (info[meaning] === 2) {
@@ -221,9 +241,9 @@ export default {
 
           console.log('translations', translations);
 
-          for (const translation of translations) {
-            await axios.post('/words/insertTranslation', {translation, id_word: el.id_word})
-          }
+          // for (const translation of translations) {
+          //   await axios.post('/words/insertTranslation', {translation, id_word})
+          // }
         }
 
         // get yandex END
@@ -250,8 +270,8 @@ export default {
       const arrOfWordsKnown = resultKnown.map(el => el.word);
       const arrOfWordsStudy = resultStudy.map(el => el.word);
 
-      console.log('arrOfWordsKnown', arrOfWordsKnown);
-      console.log('arrOfWordsStudy', arrOfWordsStudy);
+      console.log('resultKnown', resultKnown);
+      console.log('resultStudy', resultStudy);
 
       // Переменные для дальнейшей работы в while
       let items = [];
@@ -268,6 +288,8 @@ export default {
         study: this.getColor('study'),
         unknown: this.getColor('unknown')
       }
+
+      console.log('colors', colors)
 
       // Заносим все слова в спаны
       while (true) {
@@ -328,7 +350,7 @@ export default {
       });
     },
     getColor(name) {
-      return this.getColorGetter(name);
+      return this.getColorGetter(name) ?? this.colorPickers.find(el => el.name === name).defaultColor;
     },
     async closeModalEditor(updatedText) {
       const id_user = this.$store.getters['auth/getCurrentUser'].id;

@@ -6,7 +6,7 @@
 <!--        <div class="word">{{ currentWord.word }}</div>-->
       </div>
       <div class="translate-block">
-        <button class="translation" v-for="word in randomWords" @click="$emit('answer', word)">{{ word.translations }}</button>
+        <button class="translation" v-for="word in randomWords" @click="$emit('answer', word)">{{ word.translation }}</button>
         <button class="donotknow" @click="$emit('idonotknow')">Я не знаю</button>
       </div>
     </div>
@@ -30,6 +30,8 @@ export default {
   props: ['words', 'currentWord', 'currentAnswers'],
   computed: {
     randomWords() {
+      console.log('randomWords this.currentWord', this.currentWord)
+
       let temp = this.words.slice(0);
       temp = temp.filter(el => el.id_word_information !== this.currentWord.id_word_information)
       temp = temp.slice(0, 3);

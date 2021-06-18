@@ -2,7 +2,7 @@
   <div class="dictionaries">
     <DictionaryBlock
       :isDelete="false"
-      :color="'#ff4b4b'"
+      :color="'#5574ff'"
       :title="'Изучаемые'"
       id="study"
     />
@@ -23,6 +23,7 @@
         :key="dictionary.id_dictionary"
         :title="dictionary.title"
         :id="dictionary.id_dictionary"
+        @deleteDictionary="deleteDictionary"
         v-else
     />
 
@@ -31,10 +32,10 @@
         @click="showModalAddDictionary = true"
     />
 
-
     <ModalAddDictionary
       v-if="showModalAddDictionary"
       @closeModalDictionary="showModalAddDictionary = false"
+      @addNewDictionary="addNewDictionary"
     />
   </div>
 </template>
@@ -61,6 +62,26 @@ export default {
     ModalAddDictionary,
     Loader
   },
+  methods: {
+    async addNewDictionary(title) {
+      if (title.length > 5) {
+        const id_user = this.$store.getters['auth/getCurrentUser'].id;
+        const formData = { title, id_user }
+
+        this.showModalAddDictionary = false
+
+        this.dictionaries.push((await axios.post('/dictionary/create', formData)).data)
+      }
+    },
+    async deleteDictionary(id_dictionary) {
+      const id_user = this.$store.getters['auth/getCurrentUser'].id;
+      const data = { id_user, id_dictionary}
+
+      this.dictionaries = this.dictionaries.filter(el => el.id_dictionary !== id_dictionary)
+
+      await axios.post('/dictionary/delete', data);
+    }
+  },
   async mounted() {
     const id_user = this.$store.getters['auth/getCurrentUser'].id;
 
@@ -75,6 +96,7 @@ export default {
   .dictionaries {
     display: flex;
     flex-wrap: wrap;
+    margin-bottom: 60px;
 
     .wrapperLoader {
       width: 100%;

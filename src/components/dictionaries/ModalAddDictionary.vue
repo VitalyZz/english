@@ -1,44 +1,26 @@
 <template>
   <div class="main">
-    <form action="" @submit.prevent="submitHandler">
+    <form action="" @submit.prevent="$emit('addNewDictionary', title)">
       <label for="title">Название словаря</label>
-      <input type="text" id="title" name="title" v-model="title">
+      <input type="text" id="title" name="title" v-model="title" autocomplete="off">
       <button>Создать</button>
     </form>
     <div @click="$emit('closeModalDictionary')" class="close"></div>
   </div>
 
-  <div class="dark"></div>
+  <teleport to="body">
+    <div class="dark" @click="$emit('closeModalDictionary')"></div>
+  </teleport>
 </template>
 
 <script>
-import axios from "axios";
-
 export default {
-  emits: ['closeModalDictionary'],
+  emits: ['closeModalDictionary', 'addNewDictionary'],
   data() {
     return {
       title: '',
     }
   },
-  methods: {
-    async submitHandler() {
-      if (this.title.length > 5) {
-        const id_user = this.$store.getters['auth/getCurrentUser'].id;
-
-        const formData = {
-          title: this.title,
-          id_user
-        }
-
-        console.log('formData', formData)
-
-        this.$emit('closeModalDictionary')
-
-        await axios.post('/dictionary/create', formData)
-      }
-    }
-  }
 }
 </script>
 

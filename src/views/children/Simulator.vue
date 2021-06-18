@@ -2,18 +2,50 @@
   <h1>{{ currentSimulator.name }}</h1>
 
   <div class="wrapper">
+    <div class="messageFewWords" v-if="checkWordsDisplay && checkWords.length < 5">
+      Не достаточно слов для изучения, минимум нужно 5, сейчас {{ checkWords.length }}.
+    </div>
+
+    <div class="selectWords" v-else-if="checkWordsDisplay">
+      <div class="titleSelectDictionary">Выберите словарь</div>
+      <Multiselect
+        v-model="selectDictionary"
+        :options="dictionaries"
+        @select="getWords(selectDictionary)"
+      />
+
+      <div v-if="words.length !== 0" class="titleSelectWords">Выберите слова для изучения</div>
+      <span class="messageSelectMore" v-if="selectWords.length > 0 && selectWords.length < 5">Выбрать нужно больше 5</span>
+
+      <Multiselect
+        v-if="words.length !== 0"
+        v-model="selectWords"
+        :options="words"
+        mode="multiple"
+      >
+        <template v-slot:multiplelabel="{ values }">
+          <div class="multiselect-multiple-label">
+            {{ values.length }} выбрано
+          </div>
+        </template>
+      </Multiselect>
+
+      <button class="confirm" v-if="selectWords.length >= 5" @click="confirmSelected(selectWords)">Подтвердить</button>
+    </div>
+
     <Loader
-        v-if="display"
+        v-if="display && loaded"
     />
 
-    <div v-else class="wrapper_two">
+    <div v-if="loaded" class="wrapper_two">
       <component
           :is="myComponent"
           :currentWord="currentWord"
           :words="words"
           :currentAnswers="right + wrong"
           @idonotknow="idonotknow"
-          @answer="answerHandler">
+          @answer="answerHandler"
+          @matchHandler="matchHandler">
       </component>
 
       <Values
@@ -25,6 +57,7 @@
     </div>
 
     <WordBlock
+        v-if="words.length >= 5 && loaded"
         :words="words"
     />
   </div>
@@ -36,6 +69,7 @@ import WordTranslate from "@/components/simulators/main/WordTranslate";
 import Values from "@/components/simulators/Values";
 import Loader from "@/components/app/Loader";
 import { shallowRef } from 'vue'
+import Multiselect from '@vueform/multiselect'
 import axios from "axios";
 
 export default {
@@ -51,34 +85,16 @@ export default {
       wrong: 0,
       myComponent: shallowRef(null),
       display: true,
-      words: []
+      loaded: false,
+      words: [],
+      dictionaries: [],
+      selectDictionary: null,
+      selectWords: [],
+      checkWords: [],
+      checkWordsDisplay: false,
     }
   },
   methods: {
-    async getSentences(word) {
-      let language = '';
-
-      if (this.currentSimulator.component === 'TranslateWord') {
-        language = 'ru'
-      } else {
-        language = 'en_US'
-      }
-
-      try {
-        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/${language}/${word}`)
-        const json = await response.json();
-        const data = json[0].meanings.map(el => el.definitions.map(el2 => el2.example));
-        const examples = [];
-        data.map(el => el.forEach(el2 => examples.push(el2)));
-        this.tempSentences = examples.slice(0, 3);
-      } catch (e) {
-        this.tempSentences = ['Sentences is not exist'];
-      }
-
-      this.display = false;
-
-      // console.log('examples', examples.slice(0, 3));
-    },
     async idonotknow() {
       this.words[this.index].color = '#FF4D4D';
       this.wrong++;
@@ -100,11 +116,17 @@ export default {
       console.log('idonotknow');
 
       await axios.post('/word/update', data)
-
-      // this.getSentences(this.words[this.index].word)
     },
     async answerHandler(answer) {
-      if (this.currentWord.id_word_information === answer.id_word_information) {
+      const id_user = this.$store.getters['auth/getCurrentUser'].id;
+      let id;
+      if (typeof answer === "object") {
+        id = answer.id_word_information;
+      } else {
+        id = (await axios.post('/word/getIdByWord', { id_user, answer })).data.id_word_information;
+      }
+
+      if (this.currentWord.id_word_information === id) {
         this.words[this.index].color = '#19B500';
         this.right++;
 
@@ -113,28 +135,60 @@ export default {
       } else {
         this.words[this.index].color = '#FF4D4D';
         this.wrong++;
+
         this.words[this.index].wrong++;
         this.words[this.index].temporal_number_correct = 0;
       }
 
-      const id_user = this.$store.getters['auth/getCurrentUser'].id;
+      this.words[this.index].repetitions++;
 
       const data = {
         correct: this.words[this.index].correct,
         wrong: this.words[this.index].wrong,
         temporal_number_correct: this.words[this.index].temporal_number_correct,
         id_user,
-        id_word_information: this.words[this.index].id_word_information
+        id_word_information: this.words[this.index].id_word_information,
+        repetitions: this.words[this.index].repetitions
       };
-
-      console.log('CORRECT', this.words[this.index].correct)
-      console.log('answerHandler');
 
       await axios.post('/word/update', data)
 
       this.currentWord = this.words[this.index++ + 1];
+    },
+    async matchHandler(bool, element) {
+      const id_user = this.$store.getters['auth/getCurrentUser'].id;
 
-      // this.getSentences(this.words[this.index].word)
+      const curWord = this.words.find(el => el.id_word_information === element.id_word_information)
+
+      if (bool) {
+        console.log('TRUE')
+        curWord.color = '#19B500';
+        this.right++;
+
+        curWord.correct++;
+        curWord.temporal_number_correct++;
+      } else {
+        console.log('FALSE')
+        curWord.color = '#FF4D4D';
+        this.wrong++;
+        curWord.wrong++;
+        curWord.temporal_number_correct = 0;
+      }
+
+      curWord.repetitions++;
+
+      const data = {
+        correct: curWord.correct,
+        wrong: curWord.wrong,
+        temporal_number_correct: curWord.temporal_number_correct,
+        id_user,
+        id_word_information: curWord.id_word_information,
+        repetitions: curWord.repetitions
+      };
+
+      console.log('DATA word update', data);
+
+      await axios.post('/word/update', data)
     },
     async getYandex() {
       // const key = "dict.1.1.20210601T151729Z.cb8f7f225a387d74.67724ff1c9c838097dba9aace6250395f85202d2";
@@ -158,98 +212,133 @@ export default {
       // const result = await data.json();
       //
       // console.log(result);
+    },
+    async getWords(id_dictionary) {
+      this.words = [];
+
+      const id_user = this.$store.getters['auth/getCurrentUser'].id;
+
+      if ('known' === id_dictionary) {
+        const responseWords = (await axios.post('/words/getByMeaningWithTranslations', { id_user, meaning: 0 })).data;
+        responseWords.map(el => {
+          el.value = el.id_word_information
+          el.label = el.word
+        });
+
+        this.words = responseWords;
+      } else if ('study' === id_dictionary) {
+        const responseWords = (await axios.post('/words/getByMeaningWithTranslations', { id_user, meaning: 1 })).data;
+        responseWords.map(el => {
+          el.value = el.id_word_information
+          el.label = el.word
+        });
+
+        this.words = responseWords;
+      } else {
+        const responseWords = (await axios.post('/words/getByDictionaryId', { id_user, id_dictionary })).data;
+        responseWords.map(el => {
+          el.value = el.id_word_information
+          el.label = el.word
+        });
+
+        this.words = responseWords;
+      }
+    },
+    async confirmSelected(selectedIds) {
+      const words = [];
+      this.checkWordsDisplay = false;
+
+      for (const selected in selectedIds) {
+        if (selectedIds.hasOwnProperty(selected)) {
+          words.push(selectedIds[selected]);
+        }
+      }
+
+      this.words = this.words.filter(el => {
+        if (words.indexOf(el.id_word_information) !== -1) {
+          return el;
+        }
+      });
+
+      this.words.map(el => el.color = '#2B2B2B')
+
+      if (this.currentSimulator.component === 'WordTranslate' || this.currentSimulator.component === 'WordMatching') {
+        this.words.forEach(el => {
+          if (el.correct === null) el.correct = 0;
+          if (el.wrong === null) el.wrong = 0;
+          if (el.temporal_number_correct === null) el.temporal_number_correct = 0;
+          if (el.repetitions === null) el.repetitions = 0;
+
+          el.correct = parseInt(el.correct);
+          el.wrong = parseInt(el.wrong);
+          el.temporal_number_correct = parseInt(el.temporal_number_correct);
+          el.repetitions = parseInt(el.repetitions);
+        })
+      } else if (this.currentSimulator.component === 'TranslateWord' || this.currentSimulator.component === 'WriteWord') {
+        this.words.map(el => {
+          if (el.correct === null) el.correct = 0;
+          if (el.wrong === null) el.wrong = 0;
+          if (el.temporal_number_correct === null) el.temporal_number_correct = 0;
+          if (el.repetitions === null) el.repetitions = 0;
+
+          el.tempEl = el.translation;
+          el.translation = el.word;
+          el.word = el.tempEl;
+
+          el.correct = parseInt(el.correct);
+          el.wrong = parseInt(el.wrong);
+          el.temporal_number_correct = parseInt(el.temporal_number_correct);
+          el.repetitions = parseInt(el.repetitions);
+        })
+      }
+
+      this.words = this.words.filter(el => el.translation !== null)
+
+      console.log('words', words)
+      console.log('this.words AAAAAAAAAAAAAAAAAA', this.words)
+
+      this.currentWord = this.words[this.index];
+      this.display = false
+      this.loaded = true;
     }
   },
   async mounted() {
     import(`@/components/simulators/main/${this.currentSimulator.component}`).then(component => this.myComponent = component.default);
 
     const id_user = this.$store.getters['auth/getCurrentUser'].id;
+    this.checkWords = (await axios.post('/words/getStudyWords', { id_user })).data;
+    this.checkWordsDisplay = true;
+
+    const responseDictionaries = (await axios.post('/dictionary/getAll', { id_user })).data
+
+    responseDictionaries.map(el => {
+      el.value = el.id_dictionary
+      el.label = el.title
+    })
+
+    responseDictionaries.unshift({ value: 'study', label: 'Изучаемые' });
+    responseDictionaries.unshift({ value: 'known', label: 'Известные' });
+
+    this.dictionaries = responseDictionaries;
 
     // WordTranslate
     // TranslateWord
     // WordMatching
     // WriteWord
-    // WriteTheWordInContext
-
-    if (this.currentSimulator.component === 'WordTranslate') {
-      const words = (await axios.post('/words/getStudyWords', { id_user })).data
-      words.map(el => el.color = '#2B2B2B')
-
-      words.forEach(el => {
-        if (el.correct === null) el.correct = 0;
-        if (el.wrong === null) el.wrong = 0;
-        if (el.temporal_number_correct === null) el.temporal_number_correct = 0;
-
-        el.correct = parseInt(el.correct);
-        el.wrong = parseInt(el.wrong);
-        el.temporal_number_correct = parseInt(el.temporal_number_correct);
-      })
-      
-      this.currentWord = words[this.index];
-      this.words = words;
-      
-      console.log('words', words);
-    } else if (this.currentSimulator.component === 'TranslateWord') {
-      const words = (await axios.post('/words/getStudyWords', { id_user })).data
-      words.map(el => el.color = '#2B2B2B')
-
-      words.map(el => {
-        if (el.correct === null) el.correct = 0;
-        if (el.wrong === null) el.wrong = 0;
-        if (el.temporal_number_correct === null) el.temporal_number_correct = 0;
-
-        el.tempEl = el.translations;
-        el.translations = el.word;
-        el.word = el.tempEl;
-
-        el.correct = parseInt(el.correct);
-        el.wrong = parseInt(el.wrong);
-        el.temporal_number_correct = parseInt(el.temporal_number_correct);
-      })
-
-      this.currentWord = words[this.index];
-      this.words = words;
-
-      console.log('words', words);
-    }  else if (this.currentSimulator.component === 'WriteWord') {
-      const words = (await axios.post('/words/getStudyWords', { id_user })).data
-      words.map(el => el.color = '#2B2B2B')
-
-      words.map(el => {
-        if (el.correct === null) el.correct = 0;
-        if (el.wrong === null) el.wrong = 0;
-        if (el.temporal_number_correct === null) el.temporal_number_correct = 0;
-
-        el.tempEl = el.translations;
-        el.translations = el.word;
-        el.word = el.tempEl;
-
-        el.correct = parseInt(el.correct);
-        el.wrong = parseInt(el.wrong);
-        el.temporal_number_correct = parseInt(el.temporal_number_correct);
-      })
-
-      this.currentWord = words[this.index];
-      this.words = words;
-
-      console.log('words', words);
-    }
-    
-    // await this.getSentences(this.currentWord);
-    // await this.getYandex();
-
-    this.display = false
   },
   components: {
     WordBlock,
     WordTranslate,
     Values,
-    Loader
+    Loader,
+    Multiselect
   }
 }
 </script>
 
 <style scoped lang="scss">
+@import "~@vueform/multiselect/themes/default.css";
+
   h1 {
     margin-top: 30px;
     margin-bottom: 20px;
@@ -260,6 +349,64 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+
+    .selectWords {
+      padding: 10px 20px;
+      background-color: #556676;
+      border-radius: 3px;
+
+      .confirm {
+        background: transparent;
+        border: 2px solid #0DFF92;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 18px;
+        color: #0DFF92;
+        padding: 5px 10px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: .3s;
+
+        &:hover {
+          background: #0DFF92;
+          color: #36404A;
+        }
+      }
+
+      .titleSelectDictionary {
+        font-size: 18px;
+        font-weight: bold;
+        color: #fff;
+        margin-bottom: 10px;
+      }
+
+      .titleSelectWords {
+        font-size: 18px;
+        font-weight: bold;
+        color: #fff;
+        margin-top: 10px;
+        margin-bottom: 5px;
+      }
+
+      .messageSelectMore {
+        font-size: 14px;
+        font-weight: bold;
+        color: #ff6868;
+        margin-bottom: 10px;
+        display: block;
+      }
+
+      select {
+        padding: 5px 10px;
+        font-size: 16px;
+      }
+    }
+
+    .messageFewWords {
+      font-size: 25px;
+      font-weight: bold;
+      color: #fff;
+    }
 
     .wrapper_two {
       display: flex;

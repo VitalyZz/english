@@ -88,6 +88,21 @@ class AuthController
         return [];
     }
 
+    public function checkEmail()
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        $email = $data['email'];
+
+        $sql = "SELECT * FROM users WHERE email = :email";
+        $statement = $this->connection->prepare($sql);
+        $statement->execute([
+            ':email' => $email
+        ]);
+
+        return $statement->fetch(\PDO::FETCH_ASSOC);
+    }
+
     public function logout(): bool
     {
         $this->storage->delete();

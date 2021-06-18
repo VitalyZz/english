@@ -3,27 +3,17 @@
     <div class="top" v-if="words.length > currentAnswers">
       <div class="wrapper-left-block">
         {{ currentWord.word }}
-        <!--        <div class="word">{{ currentWord.word }}</div>-->
       </div>
       <input type="text" v-model="inputWord" class="inputText">
       <div class="translate-block">
-<!--        <button class="translation" v-for="word in randomWords" @click="$emit('answer', word)">{{ word.translations }}</button>-->
-        <button class="iknow" @click="$emit('iknow')">Ответ</button>
-        <button class="donotknow" @click="$emit('idonotknow')">Я не знаю</button>
+        <button class="iknow" @click="$emit('answer', inputWord); inputWord = ''">Ответ</button>
+        <button class="donotknow" @click="$emit('idonotknow'); inputWord = ''">Я не знаю</button>
       </div>
     </div>
     <div class="messageEnd" v-else>
       <h1>Конец</h1>
       <router-link to="/simulators">Вернуться к тренажерам</router-link>
-      <!--      <router-link :to="'/simulator/' + $route.params.id">Начать заново</router-link>-->
     </div>
-    <!--    <div class="bottom">-->
-    <!--      <div class="sentences">-->
-    <!--        <div class="sentence" v-for="sentence in tempSentences">-->
-    <!--          {{ sentence }}-->
-    <!--        </div>-->
-    <!--      </div>-->
-    <!--    </div>-->
   </div>
 </template>
 

@@ -16,7 +16,7 @@
     </div>
     <div class="buttons">
       <button class="btn-statistics" @click="showModalStatistics = true">Статистика</button>
-      <button class="btn-delete" v-if="isDelete" @click="deleteDictionary">Удалить</button>
+      <button class="btn-delete" v-if="isDelete" @click="$emit('deleteDictionary', id)">Удалить</button>
     </div>
   </div>
 
@@ -30,10 +30,10 @@
 </template>
 
 <script>
-import axios from "axios";
 import DictionaryModalStatistics from '@/components/dictionaries/DictionaryModalStatistics'
 
 export default {
+  emits: ['deleteDictionary'],
   data() {
     return {
       showModalStatistics: false
@@ -44,13 +44,6 @@ export default {
     color: { type: String, default: '#21a4ff', required: false },
     title: { type: String, required: true },
     id: { type: [String, Number], required: true },
-  },
-  methods: {
-    async deleteDictionary() {
-      const id_user = this.$store.getters['auth/getCurrentUser'].id;
-      const data = { id_user, id_dictionary: this.id}
-      await axios.post('/dictionary/delete', data);
-    }
   },
   components: {
     DictionaryModalStatistics

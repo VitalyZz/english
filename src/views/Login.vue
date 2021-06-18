@@ -3,7 +3,7 @@
     <div class="title">Авторизация</div>
     <form @submit.prevent="submitHandler">
       <label for="email">Почта</label>
-      <input type="text" id="email" name="email" class="email" v-model="email">
+      <input type="text" id="email" name="email" class="email" v-model="email" autocomplete="off">
 
       <label for="password">Пароль</label>
       <input type="password" id="password" name="password" class="password" v-model="password">

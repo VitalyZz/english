@@ -16,7 +16,7 @@ import LoaderMini from "@/components/app/LoaderMini";
 import axios from "axios";
 
 export default {
-  props: ['id_text'],
+  props: ['id_text', 'publicAccess'],
   emits: ['closeModalStatistics'],
   data() {
     return {
@@ -32,7 +32,13 @@ export default {
     const id_user = this.$store.getters['auth/getCurrentUser'].id;
     const id_text = this.id_text
 
-    let text = (await axios.post('/text/getById', {id_user, id_text})).data.text
+    let text = '';
+
+    if (this.publicAccess === '1') {
+      text = (await axios.post('/text/getByIdPublic', { id_text })).data.text
+    } else {
+      text = (await axios.post('/text/getById', { id_user, id_text })).data.text
+    }
 
     const resultKnown = (await axios.post('/words/getByMeaning', { id_user, meaning: 0 })).data;
     const resultStudy = (await axios.post('/words/getByMeaning', { id_user, meaning: 1 })).data;
@@ -48,14 +54,24 @@ export default {
 
     const words = text.match(/(?:[a-z])+/igm);
 
-    words.forEach(word => {
-      if (arrOfWordsKnown.indexOf(word.toLowerCase()) !== -1) countKnownWords++; // проверям является ли слово известным
-      else if (arrOfWordsStudy.indexOf(word.toLowerCase()) !== -1) countStudyWords++; // проверям является ли слово изучаемым
-      else countUnknownWords++; // иначе слово неизвестное
-    })
+    console.log('words', words)
 
-    countOfWords = countKnownWords + countStudyWords + countUnknownWords;
-    countUniqueWords = [...new Set(words)].length;
+    if (words === null) {
+      countOfWords = 0;
+      countKnownWords = 0;
+      countStudyWords = 0;
+      countUnknownWords = 0;
+      countUniqueWords = 0;
+    } else {
+      words.forEach(word => {
+        if (arrOfWordsKnown.indexOf(word.toLowerCase()) !== -1) countKnownWords++; // проверям является ли слово известным
+        else if (arrOfWordsStudy.indexOf(word.toLowerCase()) !== -1) countStudyWords++; // проверям является ли слово изучаемым
+        else countUnknownWords++; // иначе слово неизвестное
+      })
+
+      countOfWords = countKnownWords + countStudyWords + countUnknownWords;
+      countUniqueWords = [...new Set(words)].length;
+    }
 
     this.wordsAll = countOfWords;
     this.wordsUnique = countUniqueWords;

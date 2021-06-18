@@ -27,13 +27,20 @@ $router->add('/login', AuthController::class, 'login');
 $router->add('/signup', AuthController::class, 'signup');
 $router->add('/check', AuthController::class, 'check');
 $router->add('/logout', AuthController::class, 'logout');
+$router->add('/checkEmail', AuthController::class, 'checkEmail');
 
-$router->add('/texts/get', TextController::class, 'getAll');
+$router->add('/texts/getAll', TextController::class, 'getAll');
+$router->add('/texts/getPublic', TextController::class, 'getPublic');
 $router->add('/text/getById', TextController::class, 'getById');
+$router->add('/text/getByIdWithoutUser', TextController::class, 'getByIdWithoutUser');
+$router->add('/text/getByIdPublic', TextController::class, 'getByIdPublic');
 $router->add('/text/create', TextController::class, 'create');
+$router->add('/text/createAdmin', TextController::class, 'createAdmin');
 $router->add('/text/delete', TextController::class, 'delete');
 $router->add('/text/update', TextController::class, 'update');
+$router->add('/text/checkPublic', TextController::class, 'checkPublic');
 
+$router->add('/dictionary/getDictionaryById', DictionaryController::class, 'getDictionaryById');
 $router->add('/dictionary/getAll', DictionaryController::class, 'getAll');
 $router->add('/dictionary/delete', DictionaryController::class, 'delete');
 $router->add('/dictionary/create', DictionaryController::class, 'create');
@@ -52,6 +59,7 @@ $router->add('/word/changeMeaning', WordsController::class, 'changeMeaning');
 $router->add('/word/deleteWithoutDictionary', WordsController::class, 'deleteWithoutDictionary');
 $router->add('/word/update', WordsController::class, 'update');
 $router->add('/word/updateByChangeDictionary', WordsController::class, 'updateByChangeDictionary');
+$router->add('/word/getIdByWord', WordsController::class, 'getIdByWord');
 
 $container->set(Connection::class, function() {
     return new Connection("mysql:host=" . HOST . ";dbname=" . DBNAME, USERNAME, PASSWORD);

@@ -63,6 +63,22 @@ const routes = [
         component: () => import('@/views/children/Simulator'),
     },
     {
+        path: '/admin',
+        name: 'admin',
+        meta: {layout: 'main', auth: true},
+        component: () => import('@/views/Admin'),
+        beforeEnter(to, from, next) {
+            if (localStorage.currentUser !== undefined) {
+                const role = JSON.parse(localStorage.currentUser).role
+                if (role === 'ADMIN') {
+                    next();
+                } else {
+                    next('/')
+                }
+            }
+        }
+    },
+    {
         path: '/:pathMatch(.*)*',
         name: 'notFound',
         meta: {layout: 'main'},

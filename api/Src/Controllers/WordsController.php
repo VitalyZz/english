@@ -20,10 +20,11 @@ class WordsController
         $id_user = $data['id_user'];
         $id_dictionary = $data['id_dictionary'];
 
-        $sql = "SELECT w.word as word, wi.id_word_information as id_word_information, (SELECT group_concat(distinct (SELECT t.translation FROM translations t WHERE t.id_translation = ws.id_translation)) from word_stock ws where ws.id_word = wi.id_word) as translation, wi.id_dictionary as id_dictionary
+        $sql = "SELECT w.word as word, wi.id_word_information as id_word_information, (SELECT group_concat(distinct (SELECT t.translation FROM translations t WHERE t.id_translation = ws.id_translation)) from word_stock ws where ws.id_word = wi.id_word) as translation, wi.id_dictionary as id_dictionary, wi.correct as correct, wi.wrong as wrong, wi.temporal_number_correct as temporal_number_correct, wi.repetitions as repetitions, d.title_dictionary as title
                     FROM words_information wi
                         INNER JOIN words w ON wi.id_word = w.id_word
-                            WHERE id_user = :id_user AND id_dictionary = :id_dictionary";
+                            LEFT JOIN dictionaries d on wi.id_dictionary = d.id_dictionary
+                                WHERE wi.id_user = :id_user AND wi.id_dictionary = :id_dictionary";
 
         $statement = $this->connection->prepare($sql);
         $statement->execute([
@@ -41,10 +42,11 @@ class WordsController
         $id_user = $data['id_user'];
         $meaning = $data['meaning'];
 
-        $sql = "SELECT w.word as word, wi.id_word_information as id_word_information, (SELECT group_concat(distinct (SELECT t.translation FROM translations t WHERE t.id_translation = ws.id_translation)) from word_stock ws where ws.id_word = wi.id_word) as translation, wi.id_dictionary as id_dictionary
+        $sql = "SELECT w.word as word, wi.id_word_information as id_word_information, (SELECT group_concat(distinct (SELECT t.translation FROM translations t WHERE t.id_translation = ws.id_translation)) from word_stock ws where ws.id_word = wi.id_word) as translation, wi.id_dictionary as id_dictionary, wi.correct as correct, wi.wrong as wrong, wi.temporal_number_correct as temporal_number_correct, wi.repetitions as repetitions, d.title_dictionary as title
                     FROM words_information wi
                         INNER JOIN words w ON wi.id_word = w.id_word
-                            WHERE id_user = :id_user AND meaning = :meaning";
+                            LEFT JOIN dictionaries d ON wi.id_dictionary = d.id_dictionary
+                                WHERE wi.id_user = :id_user AND wi.meaning = :meaning";
 
         $statement = $this->connection->prepare($sql);
         $statement->execute([
@@ -84,13 +86,15 @@ class WordsController
         $id_dictionary = $data['id_dictionary'];
         $id_word_information = $data['id_word_information'];
 
-        $sql = "DELETE FROM words_information WHERE id_user = :id_user AND id_dictionary = :id_dictionary AND id_word_information = :id_word_information";
+        $place_holders = implode(',', array_fill(0, count($id_word_information), '?'));
+
+        $sql = "DELETE FROM words_information WHERE id_user = ? AND id_dictionary = ? AND id_word_information IN ($place_holders)";
+
+        array_unshift($id_word_information, $id_dictionary);
+        array_unshift($id_word_information, $id_user);
+
         $statement = $this->connection->prepare($sql);
-        $statement->execute([
-            ':id_user' => $id_user,
-            ':id_dictionary' => $id_dictionary,
-            ':id_word_information' => $id_word_information
-        ]);
+        $statement->execute($id_word_information);
     }
 
     public function deleteWithoutDictionaryById(): void
@@ -100,12 +104,14 @@ class WordsController
         $id_user = $data['id_user'];
         $id_word_information = $data['id_word_information'];
 
-        $sql = "DELETE FROM words_information WHERE id_user = :id_user AND id_word_information = :id_word_information";
+        $place_holders = implode(',', array_fill(0, count($id_word_information), '?'));
+
+        $sql = "DELETE FROM words_information WHERE id_user = ? AND id_word_information IN ($place_holders)";
+
+        array_unshift($id_word_information, $id_user);
+
         $statement = $this->connection->prepare($sql);
-        $statement->execute([
-            ':id_user' => $id_user,
-            ':id_word_information' => $id_word_information
-        ]);
+        $statement->execute($id_word_information);
     }
 
     public function deleteWithoutDictionary(): void
@@ -154,14 +160,13 @@ class WordsController
 
         $id_user = $data['id_user'];
 
-        $sql = "SELECT wi.id_word_information as id_word_information, wi.id_word as id_word, w.word as word, group_concat(distinct t.translation) as translations, wi.temporal_number_correct as temporal_number_correct, wi.correct as correct, wi.wrong as wrong
+        $sql = "SELECT wi.id_word_information as id_word_information, wi.id_word as id_word, w.word as word, group_concat(distinct t.translation) as translations, wi.temporal_number_correct as temporal_number_correct, wi.correct as correct, wi.wrong as wrong, wi.repetitions as repetitions
                 FROM word_stock ws
                     INNER JOIN words w on ws.id_word = w.id_word
                         INNER JOIN translations t on ws.id_translation = t.id_translation
                             INNER JOIN words_information wi on ws.id_word = wi.id_word
-                                WHERE id_user = :id_user AND wi.temporal_number_correct < 5 OR wi.temporal_number_correct is null
-                                    GROUP BY word
-                                        ORDER BY RAND() LIMIT 5";
+                                WHERE id_user = :id_user AND (wi.temporal_number_correct < 5 OR wi.temporal_number_correct is null)
+                                    GROUP BY word";
 
         $statement = $this->connection->prepare($sql);
         $statement->execute([
@@ -212,14 +217,20 @@ class WordsController
         $translations = $data['translations'];
 
         if ($id_word == null) {
-            $sql = "SELECT id_word FROM words WHERE id_word = :id_word";
+            $sql = "SELECT id_word FROM words WHERE word = :word";
 
             $statement = $this->connection->prepare($sql);
             $statement->execute([
-                ':id_word' => $id_word
+                ':word' => $word
             ]);
 
             $result = $statement->fetch(\PDO::FETCH_ASSOC);
+
+            if ($result) {
+                $id_word = $result['id_word'];
+            }
+
+//            var_dump($result);
 
             if (!$result) {
                 $sql = "INSERT INTO words(`word`) VALUES(:word)";
@@ -234,22 +245,43 @@ class WordsController
                 // Добавление перевода в цикле
 
                 foreach ($translations as $translation) {
-                    $sql = "INSERT INTO translations(`translation`) VALUES(:translation)";
+                    $sql = "SELECT id_translation, translation FROM translations WHERE translation = :translation";
 
                     $statement = $this->connection->prepare($sql);
                     $statement->execute([
                         ':translation' => $translation,
                     ]);
 
-                    $id_translation = $this->connection->lastInsertId();
+                    $result = $statement->fetch(\PDO::FETCH_ASSOC);
 
-                    $sql = "INSERT INTO word_stock(`id_translation`, `id_word`) VALUES(:id_translation, :id_word)";
+                    if ($result) {
+                        $id_translation = $result['id_translation'];
 
-                    $statement = $this->connection->prepare($sql);
-                    $statement->execute([
-                        ':id_translation' => $id_translation,
-                        ':id_word' => $id_word,
-                    ]);
+                        $sql = "INSERT INTO word_stock(`id_translation`, `id_word`) VALUES(:id_translation, :id_word)";
+
+                        $statement = $this->connection->prepare($sql);
+                        $statement->execute([
+                            ':id_translation' => $id_translation,
+                            ':id_word' => $id_word,
+                        ]);
+                    } else {
+                        $sql = "INSERT INTO translations(`translation`) VALUES(:translation)";
+
+                        $statement = $this->connection->prepare($sql);
+                        $statement->execute([
+                            ':translation' => $translation,
+                        ]);
+
+                        $id_translation = $this->connection->lastInsertId();
+
+                        $sql = "INSERT INTO word_stock(`id_translation`, `id_word`) VALUES(:id_translation, :id_word)";
+
+                        $statement = $this->connection->prepare($sql);
+                        $statement->execute([
+                            ':id_translation' => $id_translation,
+                            ':id_word' => $id_word,
+                        ]);
+                    }
                 }
             }
 
@@ -275,6 +307,7 @@ class WordsController
     {
         $data = json_decode(file_get_contents("php://input"), true);
 
+        $repetitions = $data['repetitions'];
         $wrong = $data['wrong'];
         $correct = $data['correct'];
         $temporal_number_correct = $data['temporal_number_correct'];
@@ -282,16 +315,17 @@ class WordsController
         $id_word_information = $data['id_word_information'];
 
         $sql = "UPDATE words_information 
-                    SET repetitions = repetitions + 1, wrong = :wrong, correct = :correct, temporal_number_correct = :temporal_number_correct
+                    SET repetitions = :repetitions, wrong = :wrong, correct = :correct, temporal_number_correct = :temporal_number_correct
                         WHERE id_user = :id_user AND id_word_information = :id_word_information";
 
         $statement = $this->connection->prepare($sql);
         $statement->execute([
+            ':repetitions' => $repetitions,
             ':wrong' => $wrong,
             ':correct' => $correct,
             ':temporal_number_correct' => $temporal_number_correct,
             ':id_user' => $id_user,
-            ':id_word_information' => $id_word_information
+            ':id_word_information' => $id_word_information,
         ]);
     }
 
@@ -303,15 +337,37 @@ class WordsController
         $id_word_information = $data['id_word_information'];
         $id_dictionary = $data['id_dictionary'];
 
+        $place_holders = implode(',', array_fill(0, count($id_word_information), '?'));
+
         $sql = "UPDATE words_information 
-                    SET id_dictionary = :id_dictionary
-                        WHERE id_user = :id_user AND id_word_information = :id_word_information";
+                    SET id_dictionary = ?
+                        WHERE id_user = ? AND id_word_information IN ($place_holders)";
+
+        array_unshift($id_word_information, $id_user);
+        array_unshift($id_word_information, $id_dictionary);
+
+        $statement = $this->connection->prepare($sql);
+        $statement->execute($id_word_information);
+    }
+
+    public function getIdByWord(): array
+    {
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        $id_user = $data['id_user'];
+        $answer = $data['answer'];
+
+        $sql = "SELECT wi.id_word_information as id_word_information
+                    FROM words_information wi
+                        INNER JOIN words w on wi.id_word = w.id_word
+                            WHERE id_user = :id_user AND w.word = :answer";
 
         $statement = $this->connection->prepare($sql);
         $statement->execute([
             ':id_user' => $id_user,
-            ':id_word_information' => $id_word_information,
-            ':id_dictionary' => $id_dictionary
+            ':answer' => $answer
         ]);
+
+        return $statement->fetch(\PDO::FETCH_ASSOC);
     }
 }

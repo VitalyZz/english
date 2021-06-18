@@ -3,7 +3,7 @@
     <div class="title">Регистрация</div>
     <form @submit.prevent="submitHandler">
       <label for="email">Почта</label>
-      <input type="text" id="email" name="email" class="email" v-model="email">
+      <input type="text" id="email" name="email" class="email" v-model="email" autocomplete="off">
 
       <label for="password">Пароль</label>
       <input type="password" id="password" name="password" class="password" v-model="password">
@@ -17,10 +17,16 @@
     </form>
 
     <router-link to="/login" class="login">Войти</router-link>
+
+    <div class="errors" v-if="errors.length !== 0">
+      <div class="message" v-for="(error, index) in errors" :key="index">{{ index + 1 }}. {{ error.message }}</div>
+    </div>
   </div>
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: 'signup',
   data() {
@@ -28,11 +34,23 @@ export default {
       email: '',
       password: '',
       passwordConfirm: '',
+      errors: []
     }
   },
   methods: {
     async submitHandler() {
-      if (this.email.length !== 0 && this.password.length !== 0 && this.password === this.passwordConfirm) {
+      this.errors = [];
+
+      if (this.email.length < 5) this.errors.push({ message: 'Email не должен быть меньше 5 символов' });
+      if (!/.+@.+/.test(this.email)) this.errors.push({ message: 'Email должен быть валидным' });
+      if ((await axios.post('/checkEmail', { email: this.email })).data) this.errors.push({ message: 'Пользователь с таким email уже существует' });
+      if (this.password.length < 4) this.errors.push({ message: 'Пароль не должен быть меньше 4 символов' });
+      if (this.password !== this.passwordConfirm) this.errors.push({ message: 'Пароли не совпадают' });
+
+      console.log('this.eerererere', this.errors);
+      console.log('this.eerererere', this.errors);
+
+      if (this.errors.length === 0) {
         const formData = {
           email: this.email,
           password: this.password,
@@ -56,6 +74,26 @@ export default {
     height: 450px;
     border: 5px solid #0DFF92;
     border-radius: 3px;
+
+    .errors {
+      position: absolute;
+      top: 0;
+      right: -430px;
+      padding: 10px 20px;
+      background-color: #f003;
+      color: #ff5d5d;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 3px;
+      border: 2px solid #f00;
+
+      .message {
+
+        &:not(:last-child) {
+          margin-bottom: 5px;
+        }
+      }
+    }
 
     .title {
       font-weight: bold;

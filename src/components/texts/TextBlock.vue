@@ -2,8 +2,11 @@
   <div class="text">
     <div class="title">
       <h2>
-        <router-link :to="`/text/${id_text}`">{{ title }}</router-link>
+        <router-link :to="`/text/${id_text}`" :some="245">{{ title }}</router-link>
       </h2>
+      <div v-if="publicAccess === '1'" class="public">
+        Общий
+      </div>
     </div>
     <div class="main">
       <p class="content">
@@ -12,7 +15,8 @@
       <div class="dark"></div>
     </div>
     <div class="buttons">
-      <button class="delete" @click="$emit('deleteText', id_user, id_text)">Удалить</button>
+      <button v-if="deleteTextBool" class="delete" @click="$emit('deleteText', id_user, id_text)">Удалить</button>
+      <button v-else class="deleteFake"></button>
       <router-link class="forward" :to="`/text/${id_text}`">Вперед</router-link>
       <button
           class="statistics"
@@ -26,6 +30,7 @@
     <ModalStatistics
       v-if="showModalStatistics"
       :id_text="id_text"
+      :publicAccess="publicAccess"
       @closeModalStatistics="showModalStatistics = false"
     />
   </teleport>
@@ -36,7 +41,7 @@ import ModalStatistics from "@/components/texts/ModalStatistics";
 
 export default {
   emits: ['deleteText'],
-  props: ['title', 'text', 'id_user', 'id_text'],
+  props: ['title', 'text', 'id_user', 'id_text', 'publicAccess', 'deleteTextBool'],
   data() {
     return {
       showModalStatistics: false
@@ -64,6 +69,11 @@ export default {
     width: 100%;
     flex-direction: column;
 
+    &:hover {
+      //box-shadow: none;
+      box-shadow: 5px 5px 15px -3px #000000;
+    }
+
     .title {
       padding: 10px 0;
       position: relative;
@@ -75,6 +85,17 @@ export default {
           font-size: 30px;
           color: #36404A;
         }
+      }
+
+      .public {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        border: 2px solid #7521ff;
+        font-size: 14px;
+        font-weight: bold;
+        color: #7521ff;
+        padding: 2px 5px;
       }
     }
 
@@ -111,6 +132,16 @@ export default {
       width: 100%;
       z-index: 5;
       padding: 0 0 10px;
+
+      .deleteFake {
+        border: 2px solid transparent;
+        margin-left: 70px;
+        font-weight: bold;
+        font-size: 14px;
+        background: transparent;
+        padding: 5px 10px;
+        border-radius: 3px;
+      }
 
       button.delete, a.forward, button.statistics {
         font-weight: bold;
